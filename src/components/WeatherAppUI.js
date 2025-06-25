@@ -33,14 +33,14 @@ import {
   CloudQueue as CloudQueueIcon,
   Edit as EditIcon,
   LocationOn as LocationOnIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  Favorite as FavoriteIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { auth, signInWithGoogle, signOutUser, db, setDoc, doc, getDoc } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { env } from '../env';
 import ExploreIcon from '@mui/icons-material/Explore';
-import FavoriteIcon from '@mui/icons-material/Favorite';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import CloudDoneIcon from '@mui/icons-material/CloudDone';
 import { serverTimestamp } from 'firebase/firestore';
@@ -65,6 +65,9 @@ const WeatherAppUI = () => {
   const [searchCount, setSearchCount] = useState(0);
   const [searchLimitReached, setSearchLimitReached] = useState(false);
   const [forecastData, setForecastData] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  // const [notifStatus, setNotifStatus] = useState('default'); // 'default' | 'granted' | 'denied'
+  // const [notifToken, setNotifToken] = useState(null);
 
   // Track search count for not-logged-in users (localStorage, per day)
   useEffect(() => {
@@ -116,8 +119,15 @@ const WeatherAppUI = () => {
         } else {
           setSettings(defaultSettings);
         }
+        // Load favorites
+        if (userSnap.exists() && userSnap.data().favorites) {
+          setFavorites(userSnap.data().favorites);
+        } else {
+          setFavorites([]);
+        }
       } else {
         setSettings(defaultSettings);
+        setFavorites([]);
       }
     });
     return () => unsub();
@@ -137,6 +147,34 @@ const WeatherAppUI = () => {
     if (user) handleSearch('chennai');
     // eslint-disable-next-line
   }, [user]);
+
+  // Load favorites on login
+  useEffect(() => {
+    if (user) {
+      const userRef = doc(db, 'users', user.uid);
+      getDoc(userRef).then(snap => {
+        setFavorites(snap.exists() && snap.data().favorites ? snap.data().favorites : []);
+      });
+    } else {
+      setFavorites([]);
+    }
+  }, [user]);
+
+  // Notification permission logic
+  // useEffect(() => {
+  //   if (settings.notifications && user) {
+  //     Notification.requestPermission().then(status => {
+  //       setNotifStatus(status);
+  //       if (status === 'granted') {
+  //         getToken(messaging, { vapidKey: 'BLekQ8UDkm2AbgVwc19SXEwgJTl4d6g6cM-Qeadx9fM8yno556UoEmSzLH7_xVsdNZ5RVVT10G3Y_v_BAaysltI' })
+  //           .then(token => {
+  //             setNotifToken(token);
+  //             setDoc(doc(db, 'users', user.uid), { fcmToken: token }, { merge: true });
+  //           });
+  //       }
+  //     });
+  //   }
+  // }, [settings.notifications, user]);
 
   const API_KEY = env.REACT_APP_OPENWEATHER_KEY;
   const BASE_URL = 'https://api.openweathermap.org/data/2.5';
@@ -250,6 +288,23 @@ const WeatherAppUI = () => {
     }
   };
 
+  // Add/remove favorite
+  const toggleFavorite = async () => {
+    if (!user || !weatherData) return;
+    const city = weatherData.city;
+    let newFavs;
+    if (favorites.includes(city)) {
+      newFavs = favorites.filter(f => f !== city);
+    } else {
+      newFavs = [...favorites, city];
+    }
+    setFavorites(newFavs);
+    await setDoc(doc(db, 'users', user.uid), { favorites: newFavs }, { merge: true });
+  };
+
+  // After weatherData is set, check for severe weather
+  const isSevere = weatherData && weatherData.weatherDescription && weatherData.weatherDescription.match(/rain|storm|snow|thunder|hail/i);
+
   // Drawer content for user/profile
   const UserDrawer = user && (
     <Box sx={{ width: { xs: 320, sm: 400 }, p: 4, pt: 6, bgcolor: '#f7f9fb', height: '100%' }}>
@@ -262,6 +317,21 @@ const WeatherAppUI = () => {
       <Button variant="outlined" color="error" startIcon={<LogoutIcon />} fullWidth onClick={() => { signOutUser(); setDrawer(null); }}>
         Logout
       </Button>
+      {favorites.length > 0 && (
+        <Box sx={{ mt: 4 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Favorites</Typography>
+          <List>
+            {favorites.map(city => (
+              <ListItem key={city} button onClick={() => { setDrawer(null); handleSearch(city); }}>
+                <ListItemText primary={city} />
+                <IconButton edge="end" onClick={async e => { e.stopPropagation(); setFavorites(favorites.filter(f => f !== city)); await setDoc(doc(db, 'users', user.uid), { favorites: favorites.filter(f => f !== city) }, { merge: true }); }}>
+                  <FavoriteIcon color="error" />
+                </IconButton>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      )}
     </Box>
   );
 
@@ -304,6 +374,11 @@ const WeatherAppUI = () => {
           <EditIcon sx={{ color: '#4a90e2' }} />
         </ListItem>
       </List>
+      {/* <Box sx={{ mt: 2 }}>
+        <Typography variant="body2" sx={{ color: notifStatus === 'granted' ? 'green' : notifStatus === 'denied' ? 'red' : 'gray' }}>
+          Notification permission: {notifStatus}
+        </Typography>
+      </Box> */}
     </Box>
   );
 
@@ -463,6 +538,11 @@ const WeatherAppUI = () => {
             {/* Weather result: only show if user is logged in, or not logged in and has searched at least once and not at limit */}
             {(user || (!user && searchCount > 0 && !searchLimitReached)) && weatherData && (
               <>
+                {isSevere && (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    Severe Weather Alert: {weatherData.weatherDescription}
+                  </Alert>
+                )}
                 <Box sx={{ mb: 4 }}>
                   <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5, letterSpacing: '-1px' }}>
                     {weatherData.city}
@@ -493,6 +573,11 @@ const WeatherAppUI = () => {
                       </Paper>
                     </Grid>
                   </Grid>
+                  {user && (
+                    <IconButton onClick={toggleFavorite} sx={{ ml: 1 }} color={favorites.includes(weatherData.city) ? 'error' : 'default'}>
+                      <FavoriteIcon />
+                    </IconButton>
+                  )}
                 </Box>
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Forecast</Typography>
                 <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
