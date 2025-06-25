@@ -18,39 +18,67 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  Drawer,
+  Switch,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Settings as SettingsIcon,
-  WbSunny as SunnyIcon,
-  Cloud as CloudIcon,
-  Opacity as RainIcon,
   CloudQueue as CloudQueueIcon,
+  Home as HomeIcon,
+  Work as WorkIcon,
+  BeachAccess as BeachAccessIcon,
+  ChevronRight as ChevronRightIcon,
+  Edit as EditIcon,
+  LocationOn as LocationOnIcon
 } from '@mui/icons-material';
 import axios from 'axios';
+import { env } from '../env';
 
 const mockForecast = [
-  { day: 'Today', icon: <SunnyIcon sx={{ color: '#f7b733' }} />, high: 22, low: 15 },
-  { day: 'Tomorrow', icon: <CloudIcon sx={{ color: '#4a90e2' }} />, high: 20, low: 14 },
-  { day: 'Wednesday', icon: <RainIcon sx={{ color: '#50a7c2' }} />, high: 18, low: 12 },
-  { day: 'Thursday', icon: <SunnyIcon sx={{ color: '#f7b733' }} />, high: 23, low: 16 },
-  { day: 'Friday', icon: <CloudIcon sx={{ color: '#4a90e2' }} />, high: 21, low: 15 }
+  { day: 'Today', icon: <CloudQueueIcon sx={{ color: '#4a90e2' }} />, high: 22, low: 15 },
+  { day: 'Tomorrow', icon: <CloudQueueIcon sx={{ color: '#4a90e2' }} />, high: 20, low: 14 },
+  { day: 'Wednesday', icon: <CloudQueueIcon sx={{ color: '#4a90e2' }} />, high: 18, low: 12 },
+  { day: 'Thursday', icon: <CloudQueueIcon sx={{ color: '#4a90e2' }} />, high: 23, low: 16 },
+  { day: 'Friday', icon: <CloudQueueIcon sx={{ color: '#4a90e2' }} />, high: 21, low: 15 }
 ];
+
+const mockUser = {
+  name: 'Sophia Carter',
+  subtitle: 'Weather enthusiast',
+  avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+  locations: [
+    { label: 'Home', icon: <HomeIcon />, place: 'Sunnyvale, CA' },
+    { label: 'Work', icon: <WorkIcon />, place: 'San Francisco, CA' },
+    { label: 'Vacation', icon: <BeachAccessIcon />, place: 'Lake Tahoe, CA' }
+  ]
+};
 
 const WeatherAppUI = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [weatherData, setWeatherData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [drawer, setDrawer] = useState(null); // 'user' | 'settings' | null
+  const [settings, setSettings] = useState({
+    notifications: false,
+    dailyForecasts: false,
+    units: 'metric',
+    language: 'en',
+  });
 
   // Demo: fetch for San Francisco on mount
   useEffect(() => {
-    handleSearch('San Francisco');
+    handleSearch('Channai');
     // eslint-disable-next-line
   }, []);
 
-  const API_KEY = 'c2556409faf0be9cee983532d0cca677';
+  const API_KEY = env.REACT_APP_OPENWEATHER_KEY;
   const BASE_URL = 'https://api.openweathermap.org/data/2.5';
 
   const fetchWeatherData = async (cityName) => {
@@ -59,10 +87,11 @@ const WeatherAppUI = () => {
         params: {
           q: cityName,
           appid: API_KEY,
-          units: 'metric'
+          units: settings.units
         }
       });
       const data = response.data;
+      console.log(data);
       return {
         city: data.name,
         temperature: Math.round(data.main.temp),
@@ -101,6 +130,89 @@ const WeatherAppUI = () => {
     }
   };
 
+  // Drawer content for user/profile
+  const UserDrawer = (
+    <Box sx={{ width: { xs: 320, sm: 400 }, p: 4, pt: 6, bgcolor: '#f7f9fb', height: '100%' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4 }}>
+        <Avatar src={mockUser.avatar} sx={{ width: 96, height: 96, mb: 2 }} />
+        <Typography variant="h6" sx={{ fontWeight: 700 }}>{mockUser.name}</Typography>
+        <Typography variant="body2" sx={{ color: '#6b7280', mb: 2 }}>{mockUser.subtitle}</Typography>
+      </Box>
+      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>My Locations</Typography>
+      <List>
+        {mockUser.locations.map((loc, idx) => (
+          <ListItem key={loc.label} sx={{ mb: 1, borderRadius: 2, bgcolor: '#f2f4f8' }}>
+            <ListItemIcon sx={{ minWidth: 36 }}>{loc.icon}</ListItemIcon>
+            <ListItemText
+              primary={<Typography sx={{ fontWeight: 600 }}>{loc.label}</Typography>}
+              secondary={<Typography sx={{ color: '#6b7280', fontSize: 14 }}>{loc.place}</Typography>}
+            />
+          </ListItem>
+        ))}
+      </List>
+      <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 4, mb: 2 }}>Settings</Typography>
+      <List>
+        <ListItem secondaryAction={<Switch edge="end" checked={settings.notifications} onChange={e => setSettings(s => ({ ...s, notifications: e.target.checked }))} />}>
+          <ListItemText primary="Notifications" />
+        </ListItem>
+        <ListItem>
+          <ListItemText primary="Units" />
+          <Typography sx={{ color: '#6b7280', fontWeight: 500 }}>{settings.units === 'metric' ? 'Metric' : 'Imperial'}</Typography>
+        </ListItem>
+        <ListItem>
+          <ListItemText primary="Language" />
+          <Typography sx={{ color: '#6b7280', fontWeight: 500 }}>{settings.language === 'en' ? 'English' : settings.language}</Typography>
+        </ListItem>
+        <ListItem button>
+          <ListItemText primary="About" />
+          <ChevronRightIcon />
+        </ListItem>
+      </List>
+    </Box>
+  );
+
+  // Drawer content for settings
+  const SettingsDrawer = (
+    <Box sx={{ width: { xs: 340, sm: 500 }, p: 4, pt: 6, bgcolor: '#f7f9fb', height: '100%' }}>
+      <Typography variant="h4" sx={{ fontWeight: 700, mb: 4 }}>Settings</Typography>
+      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Notifications</Typography>
+      <List>
+        <ListItem secondaryAction={<Switch edge="end" checked={settings.notifications} onChange={e => setSettings(s => ({ ...s, notifications: e.target.checked }))} />}>
+          <ListItemText primary="Severe Weather Alerts" secondary="Receive alerts for severe weather conditions in your saved locations." />
+        </ListItem>
+        <ListItem secondaryAction={<Switch edge="end" checked={settings.dailyForecasts} onChange={e => setSettings(s => ({ ...s, dailyForecasts: e.target.checked }))} />}>
+          <ListItemText primary="Daily Forecasts" secondary="Get daily weather forecasts delivered to your device." />
+        </ListItem>
+      </List>
+      <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 4, mb: 2 }}>Units</Typography>
+      <List>
+        <ListItem>
+          <ListItemText primary="Temperature Units" secondary="Choose between Celsius and Fahrenheit for temperature readings." />
+          <Typography sx={{ color: '#6b7280', fontWeight: 500 }}>{settings.units === 'metric' ? 'Celsius' : 'Fahrenheit'}</Typography>
+        </ListItem>
+        <ListItem>
+          <ListItemText primary="Wind Speed Units" secondary="Select your preferred unit for measuring wind speed." />
+          <Typography sx={{ color: '#6b7280', fontWeight: 500 }}>{settings.units === 'metric' ? 'km/h' : 'mph'}</Typography>
+        </ListItem>
+        <ListItem>
+          <ListItemText primary="Precipitation Units" secondary="Choose between millimeters and inches for precipitation measurements." />
+          <Typography sx={{ color: '#6b7280', fontWeight: 500 }}>{settings.units === 'metric' ? 'mm' : 'in'}</Typography>
+        </ListItem>
+      </List>
+      <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 4, mb: 2 }}>Locations</Typography>
+      <List>
+        <ListItem>
+          <ListItemText primary="Current Location" />
+          <LocationOnIcon sx={{ color: '#4a90e2' }} />
+        </ListItem>
+        <ListItem button>
+          <ListItemText primary="Manage Locations" />
+          <EditIcon sx={{ color: '#4a90e2' }} />
+        </ListItem>
+      </List>
+    </Box>
+  );
+
   return (
     <Box sx={{ bgcolor: '#f7f9fb', minHeight: '100vh' }}>
       {/* Top Bar */}
@@ -137,13 +249,21 @@ const WeatherAppUI = () => {
                 )
               }}
             />
-            <IconButton size="small" sx={{ bgcolor: '#f2f4f8', ml: 1 }}>
+            <IconButton size="small" sx={{ bgcolor: '#f2f4f8', ml: 1 }} onClick={() => setDrawer('settings')}>
               <SettingsIcon sx={{ color: '#222' }} />
             </IconButton>
-            <Avatar alt="User" src="https://randomuser.me/api/portraits/women/44.jpg" sx={{ width: 36, height: 36, ml: 1 }} />
+            <Avatar alt="User" src={mockUser.avatar} sx={{ width: 36, height: 36, ml: 1, cursor: 'pointer' }} onClick={() => setDrawer('user')} />
           </Box>
         </Toolbar>
       </AppBar>
+
+      {/* Drawers */}
+      <Drawer anchor="right" open={drawer === 'user'} onClose={() => setDrawer(null)}>
+        {UserDrawer}
+      </Drawer>
+      <Drawer anchor="right" open={drawer === 'settings'} onClose={() => setDrawer(null)}>
+        {SettingsDrawer}
+      </Drawer>
 
       <Container maxWidth="md" sx={{ mt: { xs: 3, sm: 6 }, mb: 6 }}>
         {error && (
