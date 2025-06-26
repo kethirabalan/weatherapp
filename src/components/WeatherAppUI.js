@@ -37,15 +37,16 @@ import {
   Favorite as FavoriteIcon
 } from '@mui/icons-material';
 import axios from 'axios';
-import { auth, signInWithGoogle, signOutUser, db, setDoc, doc, getDoc } from '../firebase';
+import { auth, signOutUser, db, setDoc, doc, getDoc } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { env } from '../env';
 import ExploreIcon from '@mui/icons-material/Explore';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import CloudDoneIcon from '@mui/icons-material/CloudDone';
 import { serverTimestamp } from 'firebase/firestore';
+import LoginPage from '../LoginPage';
 
-const SEARCH_LIMIT = 3;
+const SEARCH_LIMIT = 5;
 
 const defaultSettings = {
   notifications: false,
@@ -66,6 +67,7 @@ const WeatherAppUI = () => {
   const [searchLimitReached, setSearchLimitReached] = useState(false);
   const [forecastData, setForecastData] = useState([]);
   const [favorites, setFavorites] = useState([]);
+  const [showLoginPage, setShowLoginPage] = useState(false);
   // const [notifStatus, setNotifStatus] = useState('default'); // 'default' | 'granted' | 'denied'
   // const [notifToken, setNotifToken] = useState(null);
 
@@ -383,239 +385,254 @@ const WeatherAppUI = () => {
   );
 
   return (
-    <Box sx={{ bgcolor: '#f7f9fb', minHeight: '100vh' }}>
-      {/* Top Bar */}
-      <AppBar
-        position="static"
-        elevation={0}
-        sx={{
-          bgcolor: '#f7f9fb',
-          color: '#222',
-          borderBottom: '1px solid #ececec',
-        }}
-      >
-        <Toolbar sx={{ justifyContent: 'space-between', flexWrap: 'wrap', px: { xs: 1, sm: 3 } }}>
-
-          {/* Logo and Title */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
-            <CloudQueueIcon sx={{ color: '#222', fontSize: 28 }} />
-            <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: '-0.5px' }}>
-              Weather Finder
-            </Typography>
-          </Box>
-
-          {/* Right-side Controls */}
-          <Box
+    <>
+      {showLoginPage ? (
+        <LoginPage onClose={() => setShowLoginPage(false)} />
+      ) : (
+        <Box sx={{ bgcolor: '#f7f9fb', minHeight: '100vh' }}>
+          {/* Top Bar */}
+          <AppBar
+            position="static"
+            elevation={0}
             sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              mt: { xs: 1, sm: 0 },
-              width: { xs: '100%', sm: 'auto' },
-              flexDirection: { xs: 'column', sm: 'row' },
+              bgcolor: '#f7f9fb',
+              color: '#222',
+              borderBottom: '1px solid #ececec',
             }}
           >
-            {/* Search Field */}
-            {(!user && !searchLimitReached) && (
-              <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 500, textAlign: 'center' }}>
-                Searches left today: {3 - searchCount} / 3
-              </Typography>
-            )}
+            <Toolbar sx={{ justifyContent: 'space-between', flexWrap: 'wrap', px: { xs: 1, sm: 3 } }}>
 
-            {(user || (!user && !searchLimitReached)) && (
-              <TextField
-                size="small"
-                placeholder="Search"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                sx={{
-                  bgcolor: '#f2f4f8',
-                  borderRadius: 2,
-                  minWidth: { xs: 160, sm: 200 },
-                  width: { xs: '100%', sm: 'auto' },
-                  '& .MuiOutlinedInput-root': {
-                    fontSize: '1rem',
-                    borderRadius: 2,
-                    p: 0.5,
-                  },
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ color: '#b0b8c1' }} />
-                    </InputAdornment>
-                  ),
-                }}
-                disabled={searchLimitReached && !user}
-              />
-            )}
+              {/* Logo and Title */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
+                <CloudQueueIcon sx={{ color: '#222', fontSize: 28 }} />
+                <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: '-0.5px' }}>
+                  Weather Finder
+                </Typography>
+              </Box>
 
-            {/* Icons & Auth */}
-            {user ? (
-              <>
-                <IconButton size="small" sx={{ bgcolor: '#f2f4f8' }} onClick={() => setDrawer('settings')}>
-                  <SettingsIcon sx={{ color: '#222' }} />
-                </IconButton>
-                <Avatar
-                  alt={user.displayName}
-                  src={user.photoURL}
-                  sx={{ width: 36, height: 36, cursor: 'pointer' }}
-                  onClick={() => setDrawer('user')}
-                />
-              </>
-            ) : (
-              <Button
-                variant="contained"
-                color="primary"
-                sx={{ fontWeight: 600, borderRadius: 2, width: { xs: '100%', sm: 'auto' } }}
-                onClick={signInWithGoogle}
-              >
-                Login
-              </Button>
-            )}
-          </Box>
-        </Toolbar>
-      </AppBar>
-
-
-      {/* Drawers */}
-      <Drawer anchor="right" open={drawer === 'user'} onClose={() => setDrawer(null)}>
-        {UserDrawer}
-      </Drawer>
-      <Drawer anchor="right" open={drawer === 'settings'} onClose={() => setDrawer(null)}>
-        {SettingsDrawer}
-      </Drawer>
-
-      <Container maxWidth="md" sx={{ mt: { xs: 3, sm: 6 }, mb: 6 }}>
-        {error && (
-          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>
-        )}
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-            <CircularProgress size={48} />
-          </Box>
-        ) : (
-          <>
-            {/* Feature section for not-logged-in, no searches yet */}
-            {(!user && searchCount === 0 && !searchLimitReached) && (
+              {/* Right-side Controls */}
               <Box
                 sx={{
                   display: 'flex',
-                  justifyContent: 'center',
                   alignItems: 'center',
-                  minHeight: '80vh',
-                  px: 2, // for mobile padding
+                  gap: 1,
+                  mt: { xs: 1, sm: 0 },
+                  width: { xs: '100%', sm: 'auto' },
+                  flexDirection: { xs: 'column', sm: 'row' },
                 }}
               >
-                <Box sx={{ textAlign: 'center', maxWidth: 800 }}>
-                  <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
-                    Welcome to Weather Finder
+                {/* Search Field */}
+                {(!user && !searchLimitReached) && (
+                  <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 500, textAlign: 'center' }}>
+                    Searches left today: {5 - searchCount} / 5
                   </Typography>
-                  <Typography variant="body1" sx={{ color: '#6b7280', mb: 3 }}>
-                    Accurate forecasts, saved locations, and alerts — log in for full access.
-                  </Typography>
-
-                  <Grid container spacing={2} justifyContent="center">
-                    {[
-                      { icon: <ExploreIcon sx={{ fontSize: 36, color: '#4a90e2' }} />, title: 'Global Search', desc: 'Find weather for any city.' },
-                      { icon: <FavoriteIcon sx={{ fontSize: 36, color: '#e57373' }} />, title: 'Save Locations', desc: 'Bookmark favorites (login).' },
-                      { icon: <NotificationsActiveIcon sx={{ fontSize: 36, color: '#ffb300' }} />, title: 'Alerts', desc: 'Severe weather notifications.' },
-                      { icon: <CloudDoneIcon sx={{ fontSize: 36, color: '#81c784' }} />, title: 'Forecasts', desc: 'Real-time and accurate.' }
-                    ].map((item, i) => (
-                      <Grid item xs={6} sm={3} key={i}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                          {item.icon}
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{item.title}</Typography>
-                          <Typography variant="caption" sx={{ color: '#6b7280', textAlign: 'center' }}>{item.desc}</Typography>
-                        </Box>
-                      </Grid>
-                    ))}
-                  </Grid>
-                </Box>
-              </Box>
-            )}
-            {/* Weather result: only show if user is logged in, or not logged in and has searched at least once and not at limit */}
-            {(user || (!user && searchCount > 0 && !searchLimitReached)) && weatherData && (
-              <>
-                {isSevere && (
-                  <Alert severity="info" sx={{ mb: 2 }}>
-                    Severe Weather Alert: {weatherData.weatherDescription}
-                  </Alert>
                 )}
-                <Box sx={{ mb: 4 }}>
-                  <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5, letterSpacing: '-1px' }}>
-                    {weatherData.city}
-                  </Typography>
-                  <Typography variant="subtitle1" sx={{ color: '#6b7280', mb: 2, fontWeight: 400, textTransform: 'capitalize' }}>
-                    {weatherData.weatherDescription}
-                  </Typography>
-                  <Typography variant="h3" sx={{ fontWeight: 700, mb: 3 }}>
-                    {weatherData.temperature}°C
-                  </Typography>
-                  <Grid container spacing={2} sx={{ mb: 4 }}>
-                    <Grid item xs={12} sm={4}>
-                      <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, textAlign: 'center', minHeight: 80 }}>
-                        <Typography variant="subtitle2" sx={{ color: '#6b7280', mb: 0.5 }}>Humidity</Typography>
-                        <Typography variant="h5" sx={{ fontWeight: 700 }}>{weatherData.humidity}%</Typography>
-                      </Paper>
-                    </Grid>
-                    <Grid item xs={12} sm={4}>
-                      <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, textAlign: 'center', minHeight: 80 }}>
-                        <Typography variant="subtitle2" sx={{ color: '#6b7280', mb: 0.5 }}>Wind</Typography>
-                        <Typography variant="h5" sx={{ fontWeight: 700 }}>{weatherData.windSpeed} km/h</Typography>
-                      </Paper>
-                    </Grid>
-                    <Grid item xs={12} sm={4}>
-                      <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, textAlign: 'center', minHeight: 80 }}>
-                        <Typography variant="subtitle2" sx={{ color: '#6b7280', mb: 0.5 }}>Feels Like</Typography>
-                        <Typography variant="h5" sx={{ fontWeight: 700 }}>{weatherData.feelsLike}°C</Typography>
-                      </Paper>
-                    </Grid>
-                  </Grid>
-                  {user && (
-                    <IconButton onClick={toggleFavorite} sx={{ ml: 1 }} color={favorites.includes(weatherData.city) ? 'error' : 'default'}>
-                      <FavoriteIcon />
+
+                {(user || (!user && !searchLimitReached)) && (
+                  <TextField
+                    size="small"
+                    placeholder="Search"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                    sx={{
+                      bgcolor: '#f2f4f8',
+                      borderRadius: 2,
+                      minWidth: { xs: 160, sm: 200 },
+                      width: { xs: '100%', sm: 'auto' },
+                      '& .MuiOutlinedInput-root': {
+                        fontSize: '1rem',
+                        borderRadius: 2,
+                        p: 0.5,
+                        height: '36px',
+                        '& .MuiOutlinedInput-input': {
+                          padding: '6px 12px',
+                          height: '36px',
+                          width: '150px',
+                        },
+                      },
+                      '& .MuiInputBase-input': {
+                        padding: '0px !important',
+                      },
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon sx={{ color: '#b0b8c1', fontSize: '24px', marginLeft: '5px' }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    disabled={searchLimitReached && !user}
+                  />
+                )}
+
+                {/* Icons & Auth */}
+                {user ? (
+                  <>
+                    <IconButton size="small" sx={{ bgcolor: '#f2f4f8' }} onClick={() => setDrawer('settings')}>
+                      <SettingsIcon sx={{ color: '#222' }} />
                     </IconButton>
-                  )}
-                </Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Forecast</Typography>
-                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
-                  <Table size="small" aria-label="forecast table">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Day</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Weather</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>High</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Low</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {forecastData.map((row, idx) => (
-                        <TableRow key={row.day}>
-                          <TableCell>{row.day}</TableCell>
-                          <TableCell>{row.icon}</TableCell>
-                          <TableCell sx={{ color: '#4a90e2', fontWeight: 600 }}>{row.high}°C</TableCell>
-                          <TableCell sx={{ color: '#6b7280' }}>{row.low}°C</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                    <Avatar
+                      alt={user.displayName}
+                      src={user.photoURL}
+                      sx={{ width: 36, height: 36, cursor: 'pointer' }}
+                      onClick={() => setDrawer('user')}
+                    />
+                  </>
+                ) : (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    sx={{ fontWeight: 600, borderRadius: 2, width: { xs: '100%', sm: 'auto' } }}
+                    onClick={() => setShowLoginPage(true)}
+                  >
+                    Login
+                  </Button>
+                )}
+              </Box>
+            </Toolbar>
+          </AppBar>
+
+
+          {/* Drawers */}
+          <Drawer anchor="right" open={drawer === 'user'} onClose={() => setDrawer(null)}>
+            {UserDrawer}
+          </Drawer>
+          <Drawer anchor="right" open={drawer === 'settings'} onClose={() => setDrawer(null)}>
+            {SettingsDrawer}
+          </Drawer>
+
+          <Container maxWidth="md" sx={{ mt: { xs: 3, sm: 6 }, mb: 6 }}>
+            {error && (
+              <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>
+            )}
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
+                <CircularProgress size={48} />
+              </Box>
+            ) : (
+              <>
+                {/* Feature section for not-logged-in, no searches yet */}
+                {(!user && !searchLimitReached && searchCount && !weatherData) && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      minHeight: '80vh',
+                      px: 2, // for mobile padding
+                    }}
+                  >
+                    <Box sx={{ textAlign: 'center', maxWidth: 800 }}>
+                      <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+                        Welcome to Weather Finder
+                      </Typography>
+                      <Typography variant="body1" sx={{ color: '#6b7280', mb: 3 }}>
+                        Accurate forecasts, saved locations — log in for full access.
+                      </Typography>
+
+                      <Grid container spacing={2} justifyContent="center">
+                        {[
+                          { icon: <ExploreIcon sx={{ fontSize: 36, color: '#4a90e2' }} />, title: 'Global Search', desc: 'Find weather for any city.' },
+                          { icon: <FavoriteIcon sx={{ fontSize: 36, color: '#e57373' }} />, title: 'Save Locations', desc: 'Bookmark favorites (login).' },
+                          // { icon: <NotificationsActiveIcon sx={{ fontSize: 36, color: '#ffb300' }} />, title: 'Alerts', desc: 'Severe weather notifications.' },
+                          { icon: <CloudDoneIcon sx={{ fontSize: 36, color: '#81c784' }} />, title: 'Forecasts', desc: 'Real-time and accurate.' }
+                        ].map((item, i) => (
+                          <Grid item xs={6} sm={3} key={i}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                              {item.icon}
+                              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{item.title}</Typography>
+                              <Typography variant="caption" sx={{ color: '#6b7280', textAlign: 'center' }}>{item.desc}</Typography>
+                            </Box>
+                          </Grid>
+                        ))}
+                      </Grid>
+                    </Box>
+                  </Box>
+                )}
+                {/* Weather result: only show if user is logged in, or not logged in and has searched at least once and not at limit */}
+                {(user || (!user && searchCount > 0 && !searchLimitReached)) && weatherData && (
+                  <>
+                    {isSevere && (
+                      <Alert severity="info" sx={{ mb: 2 }}>
+                        Severe Weather Alert: {weatherData.weatherDescription}
+                      </Alert>
+                    )}
+                    <Box sx={{ mb: 4 }}>
+                      <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5, letterSpacing: '-1px' }}>
+                        {weatherData.city}
+                      </Typography>
+                      <Typography variant="subtitle1" sx={{ color: '#6b7280', mb: 2, fontWeight: 400, textTransform: 'capitalize' }}>
+                        {weatherData.weatherDescription}
+                      </Typography>
+                      <Typography variant="h3" sx={{ fontWeight: 700, mb: 3 }}>
+                        {weatherData.temperature}°C
+                      </Typography>
+                      <Grid container spacing={2} sx={{ mb: 4 }}>
+                        <Grid item xs={12} sm={4}>
+                          <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, textAlign: 'center', minHeight: 80 }}>
+                            <Typography variant="subtitle2" sx={{ color: '#6b7280', mb: 0.5 }}>Humidity</Typography>
+                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{weatherData.humidity}%</Typography>
+                          </Paper>
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                          <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, textAlign: 'center', minHeight: 80 }}>
+                            <Typography variant="subtitle2" sx={{ color: '#6b7280', mb: 0.5 }}>Wind</Typography>
+                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{weatherData.windSpeed} km/h</Typography>
+                          </Paper>
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                          <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, textAlign: 'center', minHeight: 80 }}>
+                            <Typography variant="subtitle2" sx={{ color: '#6b7280', mb: 0.5 }}>Feels Like</Typography>
+                            <Typography variant="h5" sx={{ fontWeight: 700 }}>{weatherData.feelsLike}°C</Typography>
+                          </Paper>
+                        </Grid>
+                      </Grid>
+                      {user && (
+                        <IconButton onClick={toggleFavorite} sx={{ ml: 1 }} color={favorites.includes(weatherData.city) ? 'error' : 'default'}>
+                          <FavoriteIcon />
+                        </IconButton>
+                      )}
+                    </Box>
+                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Forecast</Typography>
+                    <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
+                      <Table size="small" aria-label="forecast table">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 700 }}>Day</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Weather</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>High</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Low</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {forecastData.map((row, idx) => (
+                            <TableRow key={row.day}>
+                              <TableCell>{row.day}</TableCell>
+                              <TableCell>{row.icon}</TableCell>
+                              <TableCell sx={{ color: '#4a90e2', fontWeight: 600 }}>{row.high}°C</TableCell>
+                              <TableCell sx={{ color: '#6b7280' }}>{row.low}°C</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </>
+                )}
+                {/* Only show this if not logged in and search limit reached */}
+                {(!user && searchLimitReached) && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 10 }}>
+                    <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+                      Please log in to view weather details
+                    </Typography>
+                  </Box>
+                )}
               </>
             )}
-            {/* Only show this if not logged in and search limit reached */}
-            {(!user && searchLimitReached) && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 10 }}>
-                <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
-                  Please log in to view weather details
-                </Typography>
-              </Box>
-            )}
-          </>
-        )}
-      </Container>
-    </Box>
+          </Container>
+        </Box>
+      )}
+    </>
   );
 };
 

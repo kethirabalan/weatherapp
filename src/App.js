@@ -2,10 +2,7 @@ import React from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import WeatherAppUI from './components/WeatherAppUI';
-import LoginPage from './LoginPage';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { auth } from './firebase';
-import { useAuthState } from 'react-firebase-hooks/auth';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 // Create a custom theme
 const theme = createTheme({
@@ -52,20 +49,13 @@ const theme = createTheme({
   },
 });
 
-function PrivateRoute({ children }) {
-  const [user, loading] = useAuthState(auth);
-  if (loading) return null;
-  return user ? children : <Navigate to="/login" />;
-}
-
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<PrivateRoute><WeatherAppUI /></PrivateRoute>} />
+          <Route path="/" element={<WeatherAppUI />} />
         </Routes>
       </Router>
     </ThemeProvider>

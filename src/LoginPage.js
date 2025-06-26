@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, TextField, Typography, Paper, Divider, CircularProgress, Alert } from '@mui/material';
+import { Box, Button, TextField, Typography, Paper, Divider, CircularProgress, Alert, IconButton } from '@mui/material';
 import GoogleIcon from '@mui/icons-material/Google';
+import CloseIcon from '@mui/icons-material/Close';
 import { auth, signInWithGoogle } from './firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
-const LoginPage = () => {
+const LoginPage = ({ onClose }) => {
   const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,7 +24,11 @@ const LoginPage = () => {
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
-      navigate('/');
+      if (onClose) {
+        onClose();
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -36,7 +41,11 @@ const LoginPage = () => {
     setLoading(true);
     try {
       await signInWithGoogle();
-      navigate('/');
+      if (onClose) {
+        onClose();
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -45,8 +54,22 @@ const LoginPage = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f7f9fb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Paper elevation={3} sx={{ p: 4, minWidth: 340, maxWidth: 400 }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#f7f9fb', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+      <Paper elevation={3} sx={{ p: 4, minWidth: 340, maxWidth: 400, position: 'relative' }}>
+        {onClose && (
+          <IconButton
+            onClick={onClose}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              color: '#6b7280'
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        )}
+        
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, textAlign: 'center' }}>
           {isSignup ? 'Sign Up' : 'Login'} to Weather Finder
         </Typography>
