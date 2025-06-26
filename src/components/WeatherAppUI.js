@@ -41,7 +41,6 @@ import { auth, signOutUser, db, setDoc, doc, getDoc } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { env } from '../env';
 import ExploreIcon from '@mui/icons-material/Explore';
-import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import CloudDoneIcon from '@mui/icons-material/CloudDone';
 import { serverTimestamp } from 'firebase/firestore';
 import LoginPage from '../LoginPage';
