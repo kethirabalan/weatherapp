@@ -512,7 +512,7 @@ const WeatherAppUI = () => {
             ) : (
               <>
                 {/* Feature section for not-logged-in, no searches yet */}
-                {(!user && !searchLimitReached && searchCount && !weatherData) && (
+                {(!user && !searchLimitReached && !weatherData) && (
                   <Box
                     sx={{
                       display: 'flex',
