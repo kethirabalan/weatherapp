@@ -23,3 +23,14 @@ A modern, responsive weather application built with React, Material UI, and GSAP
 ### Click to Visit
 
 https://portlist-4d7f3.web.app/
+
+### Screenshots
+
+### Home Page
+![Home](public/Home.png)
+
+### Login Result
+![Result](public/login.png)
+
+### Weather Result
+![Result](public/Ui.png)
