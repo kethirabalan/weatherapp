@@ -261,7 +261,7 @@ const WeatherAppUI = () => {
       // Not logged in: check search limit
       if (searchCount >= SEARCH_LIMIT) {
         setSearchLimitReached(true);
-        setError('Search limit reached. Login for unlimited searches.');
+        setError('Search limit reached. Please Login for unlimited searches.');
         return;
       }
     }
@@ -340,7 +340,7 @@ const WeatherAppUI = () => {
   const SettingsDrawer = (
     <Box sx={{ width: { xs: 340, sm: 500 }, p: 4, pt: 6, bgcolor: '#f7f9fb', height: '100%' }}>
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 4 }}>Settings</Typography>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Notifications</Typography>
+      {/* <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Notifications</Typography> */}
       <List>
         <ListItem secondaryAction={<Switch edge="end" checked={settings.notifications} onChange={e => setSettings(s => ({ ...s, notifications: e.target.checked }))} />}>
           <ListItemText primary="Severe Weather Alerts" secondary="Receive alerts for severe weather conditions in your saved locations." />
